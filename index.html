@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCZ & the Protein Network | A Systems Biology Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070b14;
+  --bg2: #0d1525;
+  --bg3: #111c33;
+  --surface: #13213a;
+  --surface2: #192845;
+  --border: rgba(0,200,255,0.12);
+  --cyan: #00d4ff;
+  --cyan-dim: rgba(0,212,255,0.15);
+  --purple: #9d4edd;
+  --purple-dim: rgba(157,78,221,0.15);
+  --gold: #f5c518;
+  --gold-dim: rgba(245,197,24,0.15);
+  --green: #39d98a;
+  --red: #ff5a6e;
+  --text: #e2eaf8;
+  --text-muted: #7a93c0;
+  --text-faint: #3a5080;
+  --radius: 12px;
+  --radius-sm: 6px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 3px; }
+
+/* ── PROGRESS BAR ── */
+#progress-bar {
+  position: fixed; top: 0; left: 0; height: 3px;
+  background: linear-gradient(90deg, var(--cyan), var(--purple));
+  z-index: 9999; width: 0%; transition: width 0.1s;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: rgba(7,11,20,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.nav-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  color: var(--cyan);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.nav-links {
+  display: flex; gap: 0.25rem;
+  list-style: none;
+}
+
+.nav-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.nav-links a:hover, .nav-links a.active {
+  color: var(--cyan);
+  background: var(--cyan-dim);
+}
+
+/* ── CANVAS ── */
+#neural-bg {
+  position: fixed; top: 0; left: 0;
+  width: 100%; height: 100%;
+  z-index: 0; pointer-events: none;
+  opacity: 0.35;
+}
+
+/* ── MAIN CONTENT WRAPPER ── */
+main { position: relative; z-index: 1; }
+
+/* ── HERO ── */
+#hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 5rem 2rem 3rem;
+}
+
+.hero-eyebrow {
+  font-size: 0.72rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.3s forwards;
+}
+
+.hero-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(2.8rem, 7vw, 5.5rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.5s forwards;
+}
+
+.hero-title .accent { color: var(--cyan); }
+.hero-title .accent2 { color: var(--purple); }
+
+.hero-sub {
+  max-width: 640px;
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  line-height: 1.75;
+  margin-bottom: 2.5rem;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.7s forwards;
+}
+
+.hero-stats {
+  display: flex; gap: 2rem; flex-wrap: wrap;
+  justify-content: center; margin-bottom: 3rem;
+  opacity: 0;
+  animation: fadeUp 0.8s 0.9s forwards;
+}
+
+.hero-stat {
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.5rem;
+  min-width: 130px;
+}
+
+.hero-stat .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--cyan);
+  display: block;
+}
+
+.hero-stat .label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.scroll-hint {
+  opacity: 0;
+  animation: fadeUp 0.8s 1.3s forwards;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 0.5rem; color: var(--text-faint); font-size: 0.75rem;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+.scroll-hint::after {
+  content: '';
+  width: 1px; height: 60px;
+  background: linear-gradient(to bottom, var(--text-faint), transparent);
+  animation: scrollPulse 2s ease-in-out infinite;
+}
+
+/* ── SECTIONS ── */
+section {
+  padding: 5rem 0;
+  position: relative;
+}
+
+.container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+.container-wide { max-width: 1300px; margin: 0 auto; padding: 0 2rem; }
+
+.section-label {
+  font-size: 0.7rem; letter-spacing: 0.3em; text-transform: uppercase;
+  color: var(--purple); font-weight: 600; margin-bottom: 0.75rem;
+}
+
+.section-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+.section-intro {
+  font-size: 1rem; color: var(--text-muted);
+  max-width: 720px; line-height: 1.75;
+  margin-bottom: 3rem;
+}
+
+/* ── DIVIDER ── */
+.divider {
+  width: 60px; height: 3px;
+  background: linear-gradient(to right, var(--cyan), var(--purple));
+  margin: 1.2rem 0 1.5rem;
+  border-radius: 2px;
+}
+
+/* ── HYPOTHESIS CARDS ── */
+.hyp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.hyp-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  transition: all 0.3s;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+
+.hyp-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--card-accent, var(--cyan));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s;
+}
+
+.hyp-card:hover { background: var(--surface2); transform: translateY(-4px); box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+.hyp-card:hover::before { transform: scaleX(1); }
+
+.hyp-icon { font-size: 2rem; margin-bottom: 1rem; display: block; }
+.hyp-num { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-faint); margin-bottom: 0.5rem; letter-spacing: 0.1em; }
+.hyp-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--text); }
+.hyp-card p { font-size: 0.875rem; color: var(--text-muted); line-height: 1.65; }
+
+/* ── PATHWAY INTERACTIVE ── */
+.pathway-tabs {
+  display: flex; gap: 0.5rem; flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.ptab {
+  padding: 0.5rem 1.2rem;
+  border-radius: 30px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.ptab:hover { border-color: var(--cyan); color: var(--text); }
+.ptab.active { background: var(--cyan); border-color: var(--cyan); color: var(--bg); font-weight: 600; }
+
+.pathway-content { display: none; }
+.pathway-content.active { display: block; animation: fadeIn 0.4s; }
+
+.protein-list {
+  display: flex; flex-wrap: wrap; gap: 0.5rem;
+  margin: 1.25rem 0;
+}
+
+.protein-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--cyan);
+  cursor: help;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.protein-tag:hover { background: var(--cyan-dim); border-color: var(--cyan); }
+
+.protein-tag .tip {
+  display: none;
+  position: absolute; bottom: calc(100% + 8px); left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  color: var(--text);
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.protein-tag:hover .tip { display: block; }
+
+.pathway-body p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.75; margin-bottom: 0.75rem; }
+.pathway-body strong { color: var(--text); }
+
+/* ── MINI PPI CANVAS ── */
+#ppi-canvas-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  position: relative;
+  height: 440px;
+  margin: 2rem 0;
+}
+
+#ppi-canvas { width: 100%; height: 100%; }
+
+.canvas-legend {
+  position: absolute; bottom: 1rem; left: 1rem;
+  display: flex; gap: 1rem;
+}
+
+.legend-item {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.72rem; color: var(--text-muted);
+}
+
+.legend-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+}
+
+.canvas-info {
+  position: absolute; bottom: 1rem; right: 1rem;
+  font-size: 0.72rem; color: var(--text-faint);
+}
+
+/* ── PAPER CARDS ── */
+.papers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+}
+
+.paper-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  transition: all 0.3s;
+  position: relative;
+}
+
+.paper-card:hover { background: var(--surface2); border-color: rgba(0,212,255,0.3); transform: translateY(-3px); }
+
+.paper-star {
+  position: absolute; top: -8px; right: 12px;
+  background: var(--gold);
+  color: var(--bg);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 30px;
+  letter-spacing: 0.05em;
+}
+
+.paper-journal {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.paper-year {
+  display: inline-block;
+  background: var(--purple-dim);
+  color: var(--purple);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.paper-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 0.6rem;
+  color: var(--text);
+}
+
+.paper-authors {
+  font-size: 0.78rem; color: var(--text-faint);
+  margin-bottom: 0.75rem;
+  font-style: italic;
+}
+
+.paper-finding {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+}
+
+.paper-why {
+  font-size: 0.8rem;
+  color: var(--green);
+  background: rgba(57,217,138,0.07);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border-left: 2px solid var(--green);
+}
+
+/* ── DLPFC SECTION ── */
+.dlpfc-layout {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 2rem; align-items: start;
+}
+
+.dlpfc-brain {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.brain-svg-wrap { text-align: center; margin: 1rem 0; }
+
+.stat-row {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1rem; border-radius: 8px;
+  background: rgba(0,212,255,0.05);
+  border: 1px solid rgba(0,212,255,0.1);
+  margin-bottom: 0.75rem;
+  transition: all 0.2s;
+}
+
+.stat-row:hover { background: rgba(0,212,255,0.1); }
+
+.stat-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.5rem; font-weight: 700;
+  color: var(--cyan); min-width: 90px;
+}
+
+.stat-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+.stat-desc strong { color: var(--text); display: block; }
+
+.db-cards { display: flex; flex-direction: column; gap: 1rem; }
+
+.db-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  transition: all 0.2s;
+}
+
+.db-card:hover { border-color: rgba(157,78,221,0.4); background: var(--surface2); }
+
+.db-name {
+  font-weight: 700; font-size: 0.9rem;
+  color: var(--purple); margin-bottom: 0.4rem;
+}
+
+.db-meta {
+  font-size: 0.75rem; color: var(--text-faint);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 0.5rem;
+}
+
+.db-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.6; }
+
+.db-link {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--cyan);
+  text-decoration: none;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── METHODOLOGY WORKFLOW ── */
+.workflow {
+  display: flex; flex-direction: column; gap: 0; position: relative;
+}
+
+.workflow-step {
+  display: grid; grid-template-columns: 120px 1fr;
+  gap: 2rem; padding: 2rem 0;
+  border-left: 2px solid var(--surface2);
+  margin-left: 60px;
+  padding-left: 2.5rem;
+  position: relative;
+}
+
+.workflow-step::before {
+  content: attr(data-layer);
+  position: absolute; left: -60px; top: 2rem;
+  width: 50px; height: 50px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem; font-weight: 700;
+  color: var(--cyan);
+}
+
+.workflow-step.active-layer::before {
+  background: var(--cyan);
+  color: var(--bg);
+  border-color: var(--cyan);
+  box-shadow: 0 0 20px rgba(0,212,255,0.4);
+}
+
+.layer-badge {
+  display: inline-block;
+  background: var(--cyan-dim);
+  color: var(--cyan);
+  font-size: 0.7rem; font-weight: 700;
+  padding: 0.25rem 0.7rem;
+  border-radius: 30px; margin-bottom: 0.75rem;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.05em;
+}
+
+.workflow-step h3 {
+  font-size: 1.1rem; font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.workflow-step p {
+  font-size: 0.875rem; color: var(--text-muted);
+  line-height: 1.7; margin-bottom: 0.75rem;
+}
+
+.code-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--cyan);
+  line-height: 1.6;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+
+.code-block .comment { color: var(--text-faint); }
+.code-block .keyword { color: var(--purple); }
+.code-block .string { color: var(--gold); }
+
+/* ── RESEARCH QUESTIONS ── */
+.rq-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+}
+
+.rq-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem;
+  transition: all 0.3s;
+  cursor: pointer;
+  position: relative; overflow: hidden;
+}
+
+.rq-card:hover { background: var(--surface2); transform: translateY(-3px); border-color: rgba(0,212,255,0.25); }
+
+.rq-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 3rem; font-weight: 700;
+  color: var(--text-faint);
+  position: absolute; right: 1rem; top: 0.5rem;
+  line-height: 1;
+}
+
+.rq-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1rem; }
+
+.rq-tag {
+  font-size: 0.65rem; font-weight: 600;
+  padding: 0.2rem 0.5rem; border-radius: 4px;
+  text-transform: uppercase; letter-spacing: 0.07em;
+}
+
+.tag-gwas { background: rgba(245,197,24,0.15); color: var(--gold); }
+.tag-dlpfc { background: rgba(0,212,255,0.1); color: var(--cyan); }
+.tag-psd { background: rgba(157,78,221,0.15); color: var(--purple); }
+.tag-neuro { background: rgba(57,217,138,0.1); color: var(--green); }
+.tag-drug { background: rgba(255,90,110,0.1); color: var(--red); }
+.tag-mito { background: rgba(255,165,0,0.1); color: #ffa500; }
+
+.rq-card h3 { font-size: 0.95rem; font-weight: 700; line-height: 1.45; margin-bottom: 0.75rem; }
+
+.rq-rationale {
+  font-size: 0.82rem; color: var(--text-muted);
+  line-height: 1.65;
+  max-height: 0; overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+
+.rq-card.expanded .rq-rationale { max-height: 300px; }
+
+.rq-expand {
+  font-size: 0.72rem; color: var(--cyan);
+  letter-spacing: 0.07em; text-transform: uppercase;
+  margin-top: 0.75rem; font-weight: 600;
+  display: flex; align-items: center; gap: 0.3rem;
+}
+
+.rq-expand::after {
+  content: '▼';
+  transition: transform 0.3s;
+  font-size: 0.6rem;
+}
+
+.rq-card.expanded .rq-expand::after { transform: rotate(180deg); }
+
+/* ── FEASIBILITY BAR ── */
+.feasibility {
+  margin-top: 1rem;
+  display: flex; align-items: center; gap: 0.75rem;
+}
+
+.feasibility-label { font-size: 0.7rem; color: var(--text-faint); width: 80px; }
+
+.feasibility-bar {
+  flex: 1; height: 4px;
+  background: var(--surface2);
+  border-radius: 2px; overflow: hidden;
+}
+
+.feasibility-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--cyan), var(--purple));
+  border-radius: 2px;
+}
+
+/* ── GLOSSARY ── */
+.glossary-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+}
+
+.glossary-search {
+  width: 100%; padding: 0.75rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  outline: none;
+  font-family: 'DM Sans', sans-serif;
+  transition: border-color 0.2s;
+}
+
+.glossary-search:focus { border-color: var(--cyan); }
+
+.glossary-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.gloss-item {
+  padding: 1rem; background: var(--bg2);
+  border-radius: 8px; border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.gloss-item:hover { border-color: var(--border); }
+
+.gloss-term {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8rem; font-weight: 700;
+  color: var(--cyan); margin-bottom: 0.4rem;
+}
+
+.gloss-def { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+
+/* ── FOOTER ── */
+footer {
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+footer .f-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem; color: var(--cyan); margin-bottom: 0.5rem;
+}
+
+footer p { font-size: 0.8rem; color: var(--text-faint); line-height: 1.7; max-width: 600px; margin: 0 auto; }
+
+/* ── CALLOUT BOX ── */
+.callout {
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  display: flex; gap: 1rem; align-items: flex-start;
+}
+
+.callout-info { background: var(--cyan-dim); border: 1px solid rgba(0,212,255,0.2); }
+.callout-warn { background: var(--gold-dim); border: 1px solid rgba(245,197,24,0.2); }
+.callout-tip { background: rgba(57,217,138,0.08); border: 1px solid rgba(57,217,138,0.2); }
+
+.callout-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 2px; }
+.callout-body { font-size: 0.85rem; color: var(--text-muted); line-height: 1.65; }
+.callout-body strong { color: var(--text); }
+
+/* ── SECTION DIVIDER STRIP ── */
+.section-strip {
+  background: linear-gradient(135deg, var(--bg2) 0%, var(--surface) 100%);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.9; }
+}
+
+.reveal {
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── MOBILE ── */
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .dlpfc-layout { grid-template-columns: 1fr; }
+  .workflow-step { grid-template-columns: 1fr; margin-left: 30px; }
+  .hero-stats { gap: 1rem; }
+  .papers-grid, .rq-grid { grid-template-columns: 1fr; }
+}
+
+/* ── TIER BADGES ── */
+.tier {
+  display: inline-block;
+  font-size: 0.65rem; font-weight: 700;
+  padding: 0.15rem 0.5rem; border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  vertical-align: middle; margin-left: 0.3rem;
+}
+
+.tier-1 { background: rgba(245,197,24,0.2); color: var(--gold); }
+.tier-2 { background: rgba(0,212,255,0.1); color: var(--cyan); }
+</style>
+</head>
+<body>
+
+<div id="progress-bar"></div>
+<canvas id="neural-bg"></canvas>
+
+<nav>
+  <div class="nav-logo">SCZ × PPI</div>
+  <ul class="nav-links" id="navLinks">
+    <li><a href="#biology">Biology</a></li>
+    <li><a href="#pathways">Pathways</a></li>
+    <li><a href="#network">Network</a></li>
+    <li><a href="#papers">Papers</a></li>
+    <li><a href="#dlpfc">DLPFC</a></li>
+    <li><a href="#methods">Methods</a></li>
+    <li><a href="#rqs">Research Qs</a></li>
+    <li><a href="#glossary">Glossary</a></li>
+  </ul>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════════
+     HERO
+══════════════════════════════════════════ -->
+<section id="hero">
+  <p class="hero-eyebrow">Systems Biology × Network Medicine</p>
+  <h1 class="hero-title">
+    Schizophrenia through<br>
+    the lens of <span class="accent">protein networks</span>
+  </h1>
+  <p class="hero-sub">
+    A comprehensive interactive guide to understanding schizophrenia using PPI network analysis — from the molecular biology of synapses, to STRING databases, to formulating your first research question.
+  </p>
+  <div class="hero-stats">
+    <div class="hero-stat">
+      <span class="num" data-target="287">0</span>
+      <span class="label">GWAS Loci (PGC3)</span>
+    </div>
+    <div class="hero-stat">
+      <span class="num" data-target="1461">0</span>
+      <span class="label">PSD Proteins</span>
+    </div>
+    <div class="hero-stat">
+      <span class="num" data-target="693">0</span>
+      <span class="label">DLPFC DEGs (CMC)</span>
+    </div>
+    <div class="hero-stat">
+      <span class="num" data-target="10">0</span>
+      <span class="label">SCHEMA Genes</span>
+    </div>
+    <div class="hero-stat">
+      <span class="num" data-target="23">0</span>
+      <span class="label">% Spine Reduction</span>
+    </div>
+  </div>
+  <div class="scroll-hint">explore below</div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 1: BIOLOGY
+══════════════════════════════════════════ -->
+<section id="biology" class="section-strip">
+<div class="container">
+  <div class="reveal">
+    <p class="section-label">Section 1 · Layer 0</p>
+    <h2 class="section-title">The biology of schizophrenia</h2>
+    <div class="divider"></div>
+    <p class="section-intro">
+      Schizophrenia affects ~1% of the global population, with heritability of 60–80%. It is fundamentally a <strong>disorder of synaptic connectivity</strong> driven by the interplay of genetic vulnerability and environmental insults across neurodevelopment. Here are the four major neurobiological hypotheses — the foundation of your Layer 0 literature review.
+    </p>
+  </div>
+
+  <div class="hyp-grid">
+    <div class="hyp-card reveal" style="--card-accent: var(--cyan);">
+      <span class="hyp-icon">⚡</span>
+      <div class="hyp-num">HYPOTHESIS 01</div>
+      <h3>Dopamine Hypothesis v3.0</h3>
+      <p>Diverse genetic and environmental risks converge on <strong>elevated presynaptic dopamine synthesis in the associative striatum</strong> (Howes & Kapur, 2009). PET imaging confirms increased [¹⁸F]-DOPA uptake even pre-symptom onset. Striatal hyperdopaminergia → aberrant salience → positive symptoms. Prefrontal cortical hypodopaminergia → negative/cognitive symptoms.</p>
+    </div>
+    <div class="hyp-card reveal" style="--card-accent: var(--purple);">
+      <span class="hyp-icon">🔗</span>
+      <div class="hyp-num">HYPOTHESIS 02</div>
+      <h3>Glutamate / NMDA Hypofunction</h3>
+      <p>NMDA receptor antagonists (PCP, ketamine) reproduce the full SCZ symptom spectrum — including negative and cognitive symptoms. The model: NMDA hypofunction on <strong>GABAergic interneurons → disinhibition of pyramidal neurons</strong>. SCHEMA (2022) provided genomic proof: <em>GRIN2A</em> and <em>GRIA3</em> carry exome-wide significant mutations.</p>
+    </div>
+    <div class="hyp-card reveal" style="--card-accent: var(--gold);">
+      <span class="hyp-icon">🧬</span>
+      <div class="hyp-num">HYPOTHESIS 03</div>
+      <h3>Neurodevelopmental Origin</h3>
+      <p>Early insults create a <strong>latent vulnerability unmasked in adolescence</strong> when the PFC matures (Weinberger, 1987; Murray & Lewis, 1987). Supporting evidence: premorbid childhood cognitive deficits, structural brain changes at first episode, absence of classical neurodegeneration markers. The modern "multiple-hit" model recognises gene×environment accumulation.</p>
+    </div>
+    <div class="hyp-card reveal" style="--card-accent: var(--red);">
+      <span class="hyp-icon">🔥</span>
+      <div class="hyp-num">HYPOTHESIS 04</div>
+      <h3>Neuroinflammation & Complement</h3>
+      <p>Sekar et al. (2016) showed SCZ's strongest MHC association arises from <strong>C4A structural variation</strong>. C4A mediates developmental synapse elimination; overexpression reduces cortical synapse density. ~⅓ of patients show a high-neuroinflammation profile. Complement cascade (C4A→C3→microglial CR3) links immune dysfunction directly to synaptic pruning.</p>
+    </div>
+  </div>
+
+  <!-- GENETICS BLOCK -->
+  <div class="reveal" style="margin-top: 3rem;">
+    <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:1rem;">Genetic architecture: from common to rare variants</h3>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap:1rem;">
+      <div class="callout callout-info">
+        <span class="callout-icon">📊</span>
+        <div class="callout-body">
+          <strong>PGC3 GWAS (Trubetskoy et al., 2022, Nature)</strong><br>
+          76,755 cases · 243,649 controls · 287 genomic loci · 120 prioritised protein-coding genes · SNP-based heritability h²≈0.24. Enriched in excitatory/inhibitory CNS neurons and synaptic genes.
+        </div>
+      </div>
+      <div class="callout callout-warn">
+        <span class="callout-icon">🧪</span>
+        <div class="callout-body">
+          <strong>SCHEMA Exome (Singh et al., 2022, Nature)</strong><br>
+          24,248 cases · 97,322 controls · 10 genes with exome-wide significant ultra-rare variants (ORs 3–50): <em>SETD1A, CUL1, GRIN2A, GRIA3, TRIO, SP4, XPO7, CACNA1G, HERC1, RB1CC1</em>
+        </div>
+      </div>
+      <div class="callout callout-tip">
+        <span class="callout-icon">🔬</span>
+        <div class="callout-body">
+          <strong>Key CNVs</strong><br>
+          22q11.2 deletion (>20-fold SCZ risk; ~22% carriers develop SCZ) · NRXN1 (2p16.3) · 15q13.3 · 16p11.2 · 1q21.1. Large effect, rare, mechanistically informative.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BRAIN REGIONS -->
+  <div class="reveal" style="margin-top: 3rem;">
+    <h3 style="font-size:1.3rem; font-weight:700; margin-bottom:1.5rem;">Key brain regions implicated</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem;">
+      <div style="background:var(--surface); border:2px solid var(--cyan); border-radius:var(--radius); padding:1.25rem;">
+        <div style="font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--cyan); margin-bottom:0.5rem; font-weight:700;">Primary Target</div>
+        <div style="font-size:1rem; font-weight:700; margin-bottom:0.5rem;">DLPFC (BA9/46)</div>
+        <div style="font-size:0.8rem; color:var(--text-muted);">Working memory & executive function. 23% reduced dendritic spine density, layer III vulnerability, PV+ interneuron deficits, gamma oscillation impairment.</div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem;">
+        <div style="font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--purple); margin-bottom:0.5rem; font-weight:700;">Also Affected</div>
+        <div style="font-size:1rem; font-weight:700; margin-bottom:0.5rem;">Hippocampus</div>
+        <div style="font-size:0.8rem; color:var(--text-muted);">Bilateral volume reduction in CA1/subiculum. Hypermetabolism even in prodromal phase. Memory encoding deficits.</div>
+      </div>
+      <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem;">
+        <div style="font-size:0.7rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--text-faint); margin-bottom:0.5rem; font-weight:700;">Also Affected</div>
+        <div style="font-size:1rem; font-weight:700; margin-bottom:0.5rem;">ACC + Thalamus</div>
+        <div style="font-size:0.8rem; color:var(--text-muted);">ACC: reduced grey matter, lower synaptic density, decreased GABA. Thalamus (mediodorsal nucleus): volume loss, impaired thalamocortical circuits.</div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 2: MOLECULAR PATHWAYS
+══════════════════════════════════════════ -->
+<section id="pathways">
+<div class="container">
+  <div class="reveal">
+    <p class="section-label">Section 2 · Protein Systems</p>
+    <h2 class="section-title">Molecular pathways & protein systems</h2>
+    <div class="divider"></div>
+    <p class="section-intro">
+      These are the protein systems you will work with in your PPI network. Click each pathway to explore key proteins — hover over any protein tag for its full name and significance.
+    </p>
+  </div>
+
+  <div class="reveal">
+    <div class="pathway-tabs">
+      <button class="ptab active" onclick="switchTab('glutamate')">Glutamatergic</button>
+      <button class="ptab" onclick="switchTab('psd')">Postsynaptic Density</button>
+      <button class="ptab" onclick="switchTab('gaba')">GABAergic</button>
+      <button class="ptab" onclick="switchTab('dopamine')">Dopaminergic</button>
+      <button class="ptab" onclick="switchTab('immune')">Neuroinflammation</button>
+      <button class="ptab" onclick="switchTab('neurodev')">Neurodevelopmental</button>
+      <button class="ptab" onclick="switchTab('mito')">Mitochondrial</button>
+    </div>
+
+    <div id="tab-glutamate" class="pathway-content active">
+      <div class="pathway-body">
+        <p><strong>Glutamate receptors</strong> form the core of SCZ's synaptic biology and the most direct link to genetic evidence. NMDA receptor subunits bind to PSD-95 via C-terminal PDZ domains, positioning them at the physical centre of postsynaptic protein complexes.</p>
+        <div class="protein-list">
+          <span class="protein-tag">GRIN1<span class="tip">NMDA receptor subunit 1 — obligatory subunit of all NMDA receptors. Binds glycine. Post-mortem studies show reduced NR1 protein in PFC.</span></span>
+          <span class="protein-tag">GRIN2A<span class="tip">NMDA receptor subunit 2A — SCHEMA exome-wide significant gene (2022). Binds glutamate. High confidence STRING interactions ~200+</span></span>
+          <span class="protein-tag">GRIN2B<span class="tip">NMDA receptor subunit 2B — Major PGC/GWAS signal. Critical for synaptic plasticity and LTP. Important in DLPFC working memory circuits.</span></span>
+          <span class="protein-tag">GRIA1<span class="tip">AMPA receptor subunit GluA1. Shows altered trafficking in SCZ. Regulated by phosphorylation at PSD.</span></span>
+          <span class="protein-tag">GRIA3<span class="tip">AMPA receptor subunit GluA3 — SCHEMA exome-wide significant. X-linked. Essential for AMPA receptor assembly.</span></span>
+          <span class="protein-tag">GRM3<span class="tip">Metabotropic glutamate receptor 3 — GWAS hit. Presynaptic autoreceptor regulating glutamate release. Active clinical trial target.</span></span>
+        </div>
+        <p>Key finding: de novo mutations in <em>GRIN2A</em> appear in both common-variant GWAS and rare-variant exome studies — an "allelic series" directly implicating glutamatergic dysfunction.</p>
+        <div class="callout callout-info">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body"><strong>STRING tip:</strong> GRIN1, GRIN2A, GRIN2B form a tight interaction cluster in STRING. Use these as your core seed nodes for glutamatergic PPI analysis. All have 100+ high-confidence interactions. Confidence threshold ≥0.7 recommended.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-psd" class="pathway-content">
+      <div class="pathway-body">
+        <p>The <strong>postsynaptic density (PSD)</strong> is a ~1µm protein matrix beneath excitatory synapses. It contains ~1,000–1,500 proteins (Bayés et al., 2011) and is the primary convergence point for SCZ genetic risk — multiple GWAS, CNV, and exome studies converge here.</p>
+        <div class="protein-list">
+          <span class="protein-tag">DLG4<span class="tip">PSD-95 — the master scaffold of excitatory synapses. Three PDZ domains bind NMDA receptors, AMPA auxiliaries, and signalling enzymes. >200 high-confidence STRING interactions. Best seed node for a SCZ network.</span></span>
+          <span class="protein-tag">SHANK1<span class="tip">Synaptic scaffold protein 1. Cross-links Homer and PSD-95 complexes. De novo CNVs linked to SCZ and autism.</span></span>
+          <span class="protein-tag">SHANK2<span class="tip">Scaffold protein linking glutamate receptors to cytoskeletal elements. Differentially expressed in SCZ proteomics.</span></span>
+          <span class="protein-tag">SHANK3<span class="tip">Synaptic scaffold — differentially expressed in SCZ PSD proteomics (Focking et al. 2015). De novo CNVs implicated in both autism and SCZ.</span></span>
+          <span class="protein-tag">HOMER1<span class="tip">Homer scaffold protein 1. Modulates metabotropic glutamate receptor (mGluR) signalling. Variants associated with SCZ symptom severity.</span></span>
+          <span class="protein-tag">DLGAP1<span class="tip">GKAP/SAPAP1 — links DLG4 to SHANK proteins. Central linker in the DLG4→GKAP→SHANK→Homer chain.</span></span>
+        </div>
+        <p>The signalling cascade <strong>PSD-95 (DLG4) → GKAP/DLGAP → SHANK → Homer</strong> is a well-characterised protein complex directly tractable for STRING analysis. De novo mutations in SCZ are significantly overrepresented in the <strong>ARC complex</strong> and <strong>NMDAR complex</strong> of the PSD (Fromer et al., 2014).</p>
+      </div>
+    </div>
+
+    <div id="tab-gaba" class="pathway-content">
+      <div class="pathway-body">
+        <p><strong>GABAergic interneuron dysfunction</strong> is among the most replicated post-mortem findings in SCZ. Parvalbumin-positive (PV+) fast-spiking basket cells in DLPFC layer III are most affected. These interneurons generate gamma oscillations critical for working memory.</p>
+        <div class="protein-list">
+          <span class="protein-tag">PVALB<span class="tip">Parvalbumin — calcium-binding protein expressed in PV+ fast-spiking interneurons. Consistently reduced immunoreactivity in SCZ DLPFC (neuron loss is debated; marker reduction is replicated in 25+ studies).</span></span>
+          <span class="protein-tag">GAD1<span class="tip">Glutamate decarboxylase 1 (GAD67) — the enzyme that synthesises GABA. The most replicated post-mortem finding in SCZ: reduced expression in DLPFC in 25+ independent studies.</span></span>
+          <span class="protein-tag">GAD2<span class="tip">Glutamate decarboxylase 2 (GAD65) — the other GABA synthesis enzyme. Localised to axon terminals; reduced in SCZ alongside GAD67.</span></span>
+          <span class="protein-tag">SST<span class="tip">Somatostatin — marker for a second subtype of inhibitory interneuron. Pronounced deficits in cortical layers 2–3 and 5–6 in SCZ DLPFC.</span></span>
+          <span class="protein-tag">SLC6A1<span class="tip">GAT-1, GABA transporter — removes GABA from synaptic cleft. Reduced expression in SCZ DLPFC reduces GABA reuptake efficiency.</span></span>
+          <span class="protein-tag">GABRB2<span class="tip">GABA-A receptor β2 subunit — GWAS-associated. Pocklington et al. (2015) showed SCZ CNVs enrich GABA-A receptor complexes alongside glutamatergic complexes.</span></span>
+        </div>
+        <p>Proposed mechanism: NMDA receptor hypofunction on pyramidal cells reduces excitatory drive to PV+ interneurons → GAD67 downregulation → impaired gamma oscillations → cognitive dysfunction.</p>
+      </div>
+    </div>
+
+    <div id="tab-dopamine" class="pathway-content">
+      <div class="pathway-body">
+        <p><strong>Dopamine signalling</strong> remains the primary pharmacological target in SCZ. All effective antipsychotics block D2 receptors. However, dopamine dysregulation is likely <em>downstream</em> of glutamatergic dysfunction rather than the root cause.</p>
+        <div class="protein-list">
+          <span class="protein-tag">DRD2<span class="tip">Dopamine receptor D2 — GWAS hit (PGC, 2014). Target of ALL antipsychotic medications. Striatal D2 blockade treats positive symptoms but not negative/cognitive ones.</span></span>
+          <span class="protein-tag">DRD1<span class="tip">Dopamine receptor D1 — expressed highly in DLPFC. Hypofunction contributes to working memory deficits. Target for new procognitive agents.</span></span>
+          <span class="protein-tag">AKT1<span class="tip">Protein kinase B — downstream of DRD2, modulated by dopamine. Impaired AKT1 signalling in SCZ demonstrated by Emamian et al. (2004, Nature Genetics). GWAS-associated.</span></span>
+          <span class="protein-tag">GSK3B<span class="tip">Glycogen synthase kinase 3β — phosphorylated by AKT1. Hyperactive in SCZ; connects dopamine, Wnt, and neurotrophin pathways. Target of lithium.</span></span>
+          <span class="protein-tag">COMT<span class="tip">Catechol-O-methyltransferase — degrades dopamine in PFC (unlike striatum which uses DAT). Val158Met polymorphism affects prefrontal dopamine levels and working memory.</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-immune" class="pathway-content">
+      <div class="pathway-body">
+        <p><strong>Complement-mediated synaptic pruning</strong> provides a direct molecular mechanism linking immune dysfunction to synapse loss. Sekar et al. (2016) showed C4A structural variation drives the MHC association with SCZ.</p>
+        <div class="protein-list">
+          <span class="protein-tag">C4A<span class="tip">Complement component 4A — key gene from Sekar et al. (2016, Nature). Alleles generating greater C4A expression proportionally increase SCZ risk. Tags synapses for microglial elimination.</span></span>
+          <span class="protein-tag">C3<span class="tip">Complement component 3 — downstream of C4A. Deposits C3b onto synapses marking them for phagocytosis by microglia (via CR3 receptor).</span></span>
+          <span class="protein-tag">ITGAM<span class="tip">Integrin αM (CD11b) — part of microglial CR3 receptor complex. Mediates engulfment of C3b-tagged synapses. Target of potential synaptic pruning interventions.</span></span>
+          <span class="protein-tag">IL6<span class="tip">Interleukin-6 — consistently elevated in SCZ patient serum and CSF. Levels correlate with reduced grey matter volume and poorer treatment response.</span></span>
+          <span class="protein-tag">TNF<span class="tip">Tumor necrosis factor α — pro-inflammatory cytokine elevated in SCZ. Modulates synaptic AMPA receptor trafficking and contributes to cortical circuit disruption.</span></span>
+          <span class="protein-tag">IL1B<span class="tip">Interleukin-1β — elevated in CSF of SCZ patients. Part of the NLRP3 inflammasome pathway activated in neuroinflammatory SCZ subtype.</span></span>
+        </div>
+        <p>The "Type 2" SCZ subtype (Bowen et al., 2019) — ~55% of patients — shows marked upregulation of complement cascade genes in DLPFC, making this a high-priority module for PPI analysis.</p>
+      </div>
+    </div>
+
+    <div id="tab-neurodev" class="pathway-content">
+      <div class="pathway-body">
+        <p><strong>Neurodevelopmental signalling</strong> pathways implicated in SCZ connect synaptic formation, neuronal migration, and brain wiring — all disrupted in early SCZ neurodevelopment.</p>
+        <div class="protein-list">
+          <span class="protein-tag">NRXN1<span class="tip">Neurexin-1 — trans-synaptic adhesion molecule. Most prevalent single-gene mutation in SCZ (recurrent deletions). Binds neuroligins, LRRTMs, cerebellins. >50 high-confidence STRING interactions.</span></span>
+          <span class="protein-tag">NLGN1<span class="tip">Neuroligin-1 — binds neurexins to mediate synapse formation and maturation. Post-synaptic partner of NRXN1.</span></span>
+          <span class="protein-tag">DISC1<span class="tip">Disrupted In Schizophrenia 1 — scaffold/hub protein with ~120 interactors. Identified via Scottish translocation pedigree. Does not reach GWAS significance alone but its interactome is enriched in GWAS analyses.</span></span>
+          <span class="protein-tag">BDNF<span class="tip">Brain-derived neurotrophic factor — reduced in SCZ. Up to 80% of PV+ interneurons express TrkB; deficient BDNF→TrkB signalling is upstream of GABAergic marker reduction.</span></span>
+          <span class="protein-tag">NTRK2<span class="tip">TrkB — BDNF receptor. Excellent Tier 1 STRING hub for SCZ networks.</span></span>
+          <span class="protein-tag">MTOR<span class="tip">mTOR — integrates neurotrophic, Wnt, and metabolic signalling. Connects AKT-GSK3β to synaptic protein synthesis. Well-curated STRING interactions.</span></span>
+          <span class="protein-tag">CTNNB1<span class="tip">β-catenin — central mediator of Wnt signalling. Regulated by GSK3β phosphorylation. Connects Wnt pathway to synaptic function and gene expression.</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-mito" class="pathway-content">
+      <div class="pathway-body">
+        <p><strong>Mitochondrial dysfunction</strong> is a major SCZ pathway — ~50% of altered proteins in SCZ brain tissue relate to mitochondrial function (Prabakaran et al., 2004). PV+ fast-spiking interneurons are especially vulnerable because of their high metabolic demands.</p>
+        <div class="protein-list">
+          <span class="protein-tag">NDUFS1<span class="tip">NADH-ubiquinone oxidoreductase core subunit — Complex I component. Reduced 18–35% in SCZ PFC.</span></span>
+          <span class="protein-tag">NDUFV2<span class="tip">NADH dehydrogenase flavoprotein 2 — Complex I component. Reduced in SCZ; GWAS-associated in some studies.</span></span>
+          <span class="protein-tag">SOD2<span class="tip">Superoxide dismutase 2 (mitochondrial) — key antioxidant enzyme. Reduced activity increases oxidative stress in PV+ interneurons in SCZ.</span></span>
+          <span class="protein-tag">GCLC<span class="tip">Glutamate-cysteine ligase catalytic subunit — rate-limiting enzyme in glutathione synthesis. Reduced glutathione is consistently found in SCZ brain tissue.</span></span>
+          <span class="protein-tag">GPX1<span class="tip">Glutathione peroxidase 1 — protects against oxidative damage. Reduced activity linked to PV+ interneuron vulnerability in SCZ.</span></span>
+        </div>
+        <div class="callout callout-warn">
+          <span class="callout-icon">⚠️</span>
+          <div class="callout-body"><strong>Key finding (Koopmans et al., 2026):</strong> In the most comprehensive PFC proteomics study to date (192 sections, 47 SCZ cases), mitochondrial oxidative respiration, ribosomes, and proteasome components were the most consistently <em>downregulated</em> categories. Kinases, small GTPases, and autophagy were upregulated.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERACTIVE PPI MINI-NETWORK -->
+  <div class="reveal" style="margin-top:3rem;">
+    <h3 style="font-size:1.2rem; font-weight:700; margin-bottom:0.5rem;">Interactive SCZ Protein Network</h3>
+    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:1rem;">A simplified force-directed representation of key SCZ hub proteins and their interactions. Drag nodes to rearrange. Hover for details.</p>
+    <div id="ppi-canvas-wrap">
+      <canvas id="ppi-canvas"></canvas>
+      <div class="canvas-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#00d4ff;"></div>Synaptic hub</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#9d4edd;"></div>Signalling</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f5c518;"></div>Genetic risk</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#39d98a;"></div>Immune</div>
+      </div>
+      <div class="canvas-info">Drag to interact · Scroll to zoom</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 3: KEY PAPERS
+══════════════════════════════════════════ -->
+<section id="papers" class="section-strip">
+<div class="container-wide">
+  <div class="reveal">
+    <p class="section-label">Section 3 · Literature</p>
+    <h2 class="section-title">Essential reading: PPI & network papers</h2>
+    <div class="divider"></div>
+    <p class="section-intro">
+      These are the landmark papers applying network medicine to schizophrenia. ⭐ = must-read before starting your project. Sorted by tier of importance.
+    </p>
+  </div>
+
+  <h3 class="reveal" style="font-size:1rem; text-transform:uppercase; letter-spacing:0.15em; color:var(--gold); margin-bottom:1.5rem;">⭐ Foundational Network Medicine Frameworks</h3>
+  <div class="papers-grid">
+    <div class="paper-card reveal">
+      <div class="paper-star">MUST READ</div>
+      <div class="paper-journal">Nature Reviews Genetics</div>
+      <span class="paper-year">2011</span>
+      <div class="paper-title">Network medicine: a network-based approach to human disease</div>
+      <div class="paper-authors">Barabási, Gulbahce & Loscalzo</div>
+      <div class="paper-finding">Established the entire theoretical framework — disease modules, hub proteins, the human diseasome, and the "local hypothesis" that proteins interacting with disease proteins are themselves likely disease-related. 6,000+ citations.</div>
+      <div class="paper-why">🟢 Start here. Every concept in your project (hubs, modules, disease networks) is defined in this paper.</div>
+    </div>
+    <div class="paper-card reveal">
+      <div class="paper-star">MUST READ</div>
+      <div class="paper-journal">Science</div>
+      <span class="paper-year">2015</span>
+      <div class="paper-title">Uncovering disease-disease relationships through the incomplete interactome</div>
+      <div class="paper-authors">Menche, Sharma, Kitsak, Ghiassian et al.</div>
+      <div class="paper-finding">Mapped 299 diseases onto the protein interactome showing disease proteins form identifiable modules even though the interactome is ~80% incomplete. Introduces the network separation metric (sAB) for comparing disease modules.</div>
+      <div class="paper-why">🟢 Critical for any cross-disorder comparison (SCZ vs. bipolar, autism). Directly applicable to RQ4.</div>
+    </div>
+  </div>
+
+  <h3 class="reveal" style="font-size:1rem; text-transform:uppercase; letter-spacing:0.15em; color:var(--cyan); margin: 2.5rem 0 1.5rem;">⭐ SCZ-Specific PPI Network Studies</h3>
+  <div class="papers-grid">
+    <div class="paper-card reveal">
+      <div class="paper-star">MUST READ</div>
+      <div class="paper-journal">npj Schizophrenia</div>
+      <span class="paper-year">2016</span>
+      <div class="paper-title">Schizophrenia interactome with 504 novel protein-protein interactions</div>
+      <div class="paper-authors">Ganapathiraju et al.</div>
+      <div class="paper-finding">Applied computational PPI prediction to 77 SCZ GWAS genes from PGC, discovering 365 novel PPIs. Built the "Schizo-Pi" network. 19 new interactors are drug targets (targeted by 130 existing drugs).</div>
+      <div class="paper-why">🟢 Most directly methodologically relevant to your project. Interactive tool: severus.dbmi.pitt.edu/schizo-pi</div>
+    </div>
+    <div class="paper-card reveal">
+      <div class="paper-star">MUST READ</div>
+      <div class="paper-journal">Nature</div>
+      <span class="paper-year">2014</span>
+      <div class="paper-title">De novo mutations in schizophrenia implicate synaptic networks</div>
+      <div class="paper-authors">Fromer, Pocklington, Kavanagh et al.</div>
+      <div class="paper-finding">Mapped de novo SNVs onto PSD protein complexes (ARC complex, NMDAR complex). Mutations overrepresented in PSD networks, overlapping with autism and intellectual disability. 1,500+ citations.</div>
+      <div class="paper-why">🟢 Created the paradigm of using PSD PPI networks as an analytical framework for SCZ genetics.</div>
+    </div>
+    <div class="paper-card reveal">
+      <div class="paper-star">MUST READ</div>
+      <div class="paper-journal">Nature Neuroscience</div>
+      <span class="paper-year">2011</span>
+      <div class="paper-title">Characterization of the proteome, diseases and evolution of the human postsynaptic density</div>
+      <div class="paper-authors">Bayés, van de Lagemaat, Collins et al. (Seth Grant lab)</div>
+      <div class="paper-finding">Proteomically isolated the human PSD, identifying ~1,461 proteins. Mutations in hPSD proteins cause 133 neurological/psychiatric diseases. This is the definitive PSD gene list.</div>
+      <div class="paper-why">🟢 The ~1,461 protein list is your critical seed set for any PSD-focused SCZ PPI project.</div>
+    </div>
+    <div class="paper-card reveal">
+      <div class="paper-star">MUST READ</div>
+      <div class="paper-journal">Molecular Psychiatry</div>
+      <span class="paper-year">2012</span>
+      <div class="paper-title">De novo CNV analysis implicates specific abnormalities of postsynaptic signalling complexes in SCZ</div>
+      <div class="paper-authors">Kirov, Pocklington, Holmans et al.</div>
+      <div class="paper-finding">First systematic demonstration that SCZ CNVs converge on PSD protein complexes: PSD proteome (P=1.72×10⁻⁶), NMDAR complex (P=4.24×10⁻⁶), ARC complex (P=3.78×10⁻⁸).</div>
+      <div class="paper-why">🟢 Established PSD-network analysis as a paradigm. Essential methods reference.</div>
+    </div>
+    <div class="paper-card reveal">
+      <div class="paper-star">MUST READ</div>
+      <div class="paper-journal">Neuron</div>
+      <span class="paper-year">2015</span>
+      <div class="paper-title">Novel Findings from CNVs Implicate Inhibitory and Excitatory Signaling Complexes in Schizophrenia</div>
+      <div class="paper-authors">Pocklington, Rees, Walters et al.</div>
+      <div class="paper-finding">Extended PSD analysis to GABAergic neurotransmission — first evidence that SCZ CNVs are enriched for GABA-A receptor complexes alongside glutamatergic signalling. PSD-95 enriched in deletions (P<10⁻⁷).</div>
+      <div class="paper-why">🟢 Bridges excitatory and inhibitory pathology; critical for RQ3 (bridge protein analysis).</div>
+    </div>
+    <div class="paper-card reveal">
+      <div class="paper-star">MUST READ</div>
+      <div class="paper-journal">Cell</div>
+      <span class="paper-year">2013</span>
+      <div class="paper-title">Spatial and Temporal Mapping of De Novo Mutations in SCZ to a Fetal Prefrontal Cortical Network</div>
+      <div class="paper-authors">Gulsuner, Walsh, Watts et al.</div>
+      <div class="paper-finding">Mapped de novo mutations onto BrainSpan developmental transcriptome data. In the DLPFC during fetal development, mutated genes formed both a co-expression network and a PPI network enriched for neuronal migration and synaptic transmission.</div>
+      <div class="paper-why">🟢 Uniquely combines spatial (DLPFC), temporal (fetal), and network dimensions.</div>
+    </div>
+    <div class="paper-card reveal">
+      <div class="paper-star">MUST READ</div>
+      <div class="paper-journal">Nature Neuroscience</div>
+      <span class="paper-year">2015</span>
+      <div class="paper-title">Psychiatric genome-wide association study analyses implicate neuronal, immune and histone pathways</div>
+      <div class="paper-authors">Network and Pathway Analysis Subgroup of PGC</div>
+      <div class="paper-finding">Applied 5 GWAS methods to SCZ, bipolar disorder, and depression (N=61,220). 49 significant pathways: (1) histone H3-K4 methylation, (2) neuronal/synaptic biology, (3) immune/neurotrophic pathways.</div>
+      <div class="paper-why">🟢 The official PGC pathway paper — defines the biological signal in GWAS data.</div>
+    </div>
+    <div class="paper-card reveal">
+      <div class="paper-journal">PLoS Computational Biology</div>
+      <span class="paper-year">2012</span>
+      <div class="paper-title">Network-Assisted Investigation of Combined Causal Signals from GWAS in Schizophrenia</div>
+      <div class="paper-authors">Jia, Wang, Fanous et al.</div>
+      <div class="paper-finding">Used GWAS-weighted PPI network with Dense Module Search (DMS) on PINA database. Identified 205 module genes including DISC1, GNAI1, GRIN2B, enriched for neuronal processes.</div>
+      <div class="paper-why">🔵 Good methodological template for GWAS-weighted network analysis.</div>
+    </div>
+    <div class="paper-card reveal">
+      <div class="paper-journal">Frontiers in Genetics</div>
+      <span class="paper-year">2018</span>
+      <div class="paper-title">Common and Rare Genetic Risk Factors Converge in Protein Interaction Networks Underlying Schizophrenia</div>
+      <div class="paper-authors">Chen et al.</div>
+      <div class="paper-finding">Common GWAS variants and rare de novo mutations converge on the same PPI networks, enriched for synaptic plasticity and NMDA receptor interactome genes. KEGG: LTP, neurotrophin signalling, ERBB.</div>
+      <div class="paper-why">🔵 Directly validates the rationale for combining common and rare variant seed genes.</div>
+    </div>
+    <div class="paper-card reveal">
+      <div class="paper-journal">iScience</div>
+      <span class="paper-year">2023</span>
+      <div class="paper-title">Using brain cell-type-specific protein interactomes to interpret neurodevelopmental genetic signals in schizophrenia</div>
+      <div class="paper-authors">Pergola et al.</div>
+      <div class="paper-finding">IP-MS for 6 SCZ risk genes in human induced cortical neurons. Network enriched for SCZ common variant risk and downregulated in layer 5/6 cortical neurons of SCZ patients. HCN1 sub-network enriched for rare PTVs.</div>
+      <div class="paper-why">🔵 State of the art: cell-type-specific PPI approaches beyond STRING.</div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 4: DLPFC
+══════════════════════════════════════════ -->
+<section id="dlpfc">
+<div class="container">
+  <div class="reveal">
+    <p class="section-label">Section 4 · Brain Region Focus</p>
+    <h2 class="section-title">The DLPFC in schizophrenia</h2>
+    <div class="divider"></div>
+    <p class="section-intro">
+      The dorsolateral prefrontal cortex (BA9/46) is the most extensively studied region in SCZ. It is the seat of working memory and executive function — the very cognitive processes most impaired. Here's the molecular portrait of DLPFC pathology and the key datasets available.
+    </p>
+  </div>
+
+  <div class="dlpfc-layout reveal">
+    <div>
+      <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:1.5rem;">Key molecular findings in DLPFC</h3>
+
+      <div class="stat-row">
+        <div class="stat-num">↓23%</div>
+        <div class="stat-desc">
+          <strong>Dendritic spine density</strong>
+          Reduced on deep layer III pyramidal neurons (Glantz & Lewis, 2000). Directly linked to reduced PSD protein expression.
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-num">↓25+</div>
+        <div class="stat-desc">
+          <strong>GAD67/PVALB studies</strong>
+          Reduced GAD67 expression replicated in 25+ independent post-mortem studies of DLPFC layer III.
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-num">↓18–35%</div>
+        <div class="stat-desc">
+          <strong>Mitochondrial Complex I activity</strong>
+          Reduced in PFC; Complex IV also 22–28% reduced. ATP synthesis reduced 20–22% (Koopmans et al., 2026).
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-num">3,092</div>
+        <div class="stat-desc">
+          <strong>DEGs in Type 2 SCZ subtype</strong>
+          Bowen et al. (2019): ~55% of patients have 3,092 DLPFC DEGs. Type 1 (~45%) shows only 4 DEGs — near-normal transcriptome.
+        </div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-num">387</div>
+        <div class="stat-desc">
+          <strong>Differentially expressed proteins</strong>
+          PFC proteomics (Koopmans et al., 2026): 192 sections, 47 SCZ vs 49 controls at 5% FDR.
+        </div>
+      </div>
+
+      <div class="callout callout-warn" style="margin-top:1.5rem;">
+        <span class="callout-icon">🔑</span>
+        <div class="callout-body">
+          <strong>Layer III vulnerability (Arnsten, 2022, Biological Psychiatry):</strong> DLPFC layer III synapses are uniquely vulnerable because they rely on NMDA (not AMPA) receptor neurotransmission and are subject to stress-induced calcium dysregulation. This molecular specificity explains why DLPFC is disproportionately affected.
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:1.5rem;">Key DLPFC datasets for your project</h3>
+      <div class="db-cards">
+        <div class="db-card">
+          <div class="db-name">CommonMind Consortium (CMC)</div>
+          <div class="db-meta">258 SCZ · 279 controls · DLPFC BA9/46 · RNA-seq + SNP + ATAC-seq</div>
+          <div class="db-desc">693 DEGs (332 up, 361 down). Key genes: FURIN, TSNARE1, CNTN4, CLCN3, SNAP91. ~20% of GWAS loci have eQTLs here. Fromer et al. (2016, Nature Neuroscience).</div>
+          <a href="https://CommonMind.org" class="db-link" target="_blank">→ CommonMind.org (Synapse)</a>
+        </div>
+        <div class="db-card">
+          <div class="db-name">BrainSeq (LIBD)</div>
+          <div class="db-meta">551 individuals · DLPFC + hippocampus · RNA-seq + genotypes</div>
+          <div class="db-desc">245 DEGs in DLPFC, 48 in hippocampus — remarkably little overlap between regions. >76% of GWAS risk loci have eQTLs. Collado-Torres et al. (2019, Neuron).</div>
+          <a href="http://eqtl.brainseq.org" class="db-link" target="_blank">→ eqtl.brainseq.org</a>
+        </div>
+        <div class="db-card">
+          <div class="db-name">PsychENCODE Consortium</div>
+          <div class="db-meta">1,695 brain samples · 5 disorders · RNA-seq + ChIP-seq + ATAC-seq</div>
+          <div class="db-desc">Largest transcriptomic meta-analysis. WGCNA identifies disease-specific neuronal modules. TWAS identified 64 candidate SCZ risk genes. Gandal et al. (2018, Science).</div>
+          <a href="https://Resource.PsychENCODE.org" class="db-link" target="_blank">→ Resource.PsychENCODE.org</a>
+        </div>
+        <div class="db-card">
+          <div class="db-name">Stanley Medical Research Institute</div>
+          <div class="db-meta">35 SCZ · 35 bipolar · 35 controls · synaptic fractions from DLPFC BA46</div>
+          <div class="db-desc">Deep proteomics of synaptic fractions. Aryal et al. (2023, Cell Reports): SCZ and bipolar show highly similar synaptic proteomic alterations. Shared downregulation of synaptic/mitochondrial function.</div>
+        </div>
+        <div class="db-card">
+          <div class="db-name">SynGO</div>
+          <div class="db-meta">1,112 curated synaptic genes · pre/postsynaptic annotations</div>
+          <div class="db-desc">Gold-standard synaptic gene ontology resource. Essential for enrichment analysis to determine whether your PPI network modules are pre- or postsynaptic.</div>
+          <a href="https://syngoportal.org" class="db-link" target="_blank">→ syngoportal.org</a>
+        </div>
+        <div class="db-card">
+          <div class="db-name">spatialDLPFC</div>
+          <div class="db-meta">Spatial transcriptomics atlas · layer-resolved expression</div>
+          <div class="db-desc">Spatially resolved gene expression across DLPFC layers. Enables layer-specific validation of PPI network findings (critical given layer III vulnerability).</div>
+          <a href="https://research.libd.org/spatialDLPFC/" class="db-link" target="_blank">→ research.libd.org/spatialDLPFC</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 5: METHODS
+══════════════════════════════════════════ -->
+<section id="methods" class="section-strip">
+<div class="container">
+  <div class="reveal">
+    <p class="section-label">Section 5 · Practical Guide</p>
+    <h2 class="section-title">Building your STRING-based PPI network</h2>
+    <div class="divider"></div>
+    <p class="section-intro">
+      A step-by-step practical guide for the Layer 0 → Layer 1 → Layer 2 workflow. From curating your seed proteins to identifying hubs, running clustering algorithms, and interpreting enrichment results.
+    </p>
+  </div>
+
+  <div class="workflow reveal">
+    <div class="workflow-step active-layer" data-layer="L0">
+      <div>
+        <span class="layer-badge">LAYER 0</span>
+        <h3>Literature Review & Seed Curation</h3>
+        <p>Compile a high-quality list of SCZ-associated seed genes from multiple evidence sources. Multi-source seeds produce more biologically meaningful networks than any single source alone.</p>
+        <div class="code-block">
+<span class="comment"># Recommended seed sources (total: ~100-500 genes)</span>
+<span class="keyword">GWAS seeds</span>: <span class="string">PGC3 120 prioritised genes</span>
+  → https://pgc.unc.edu/for-researchers/download-results/
+
+<span class="keyword">DLPFC DEGs</span>: <span class="string">CMC 693 DEGs</span> (Fromer et al. 2016)
+            <span class="string">BrainSeq 245 DEGs</span> (Collado-Torres et al. 2019)
+
+<span class="keyword">PSD proteins</span>: <span class="string">Bayés et al. 2011 ~1,461 proteins</span>
+<span class="keyword">Synaptic</span>:     <span class="string">SynGO 1,112 curated genes</span>
+<span class="keyword">Rare variants</span>: <span class="string">SCHEMA 10 genes</span>
+        </div>
+        <p>Intersect sources to create a multi-evidence seed list. <strong>Document the provenance of each gene</strong> — this becomes crucial for interpreting your results.</p>
+      </div>
+    </div>
+
+    <div class="workflow-step" data-layer="L1">
+      <div>
+        <span class="layer-badge">LAYER 1</span>
+        <h3>Seed-Only Network Construction</h3>
+        <p>Input seed genes into STRING via Cytoscape stringApp. This produces a "zero-order" network showing only connections between your seed genes — the core disease interactome.</p>
+        <div class="code-block">
+<span class="comment"># STRING Settings for Layer 1:</span>
+Confidence threshold: <span class="string">0.7</span> (high confidence) or <span class="string">0.9</span> (stringent)
+Additional interactors: <span class="keyword">0</span> (seed-only mode)
+Network type: <span class="string">physical subnetwork</span> for PPIs
+
+<span class="comment"># After import in Cytoscape:</span>
+<span class="keyword">Remove</span> disconnected nodes
+<span class="keyword">Focus</span> on largest connected component (LCC)
+<span class="keyword">Run</span> Tools → Analyze Network (NetworkAnalyzer)
+<span class="keyword">Check</span> degree distribution (should approximate scale-free)
+        </div>
+
+        <h4 style="font-size:0.9rem; margin: 1rem 0 0.5rem; color:var(--text);">Hub Identification — use multiple methods:</h4>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:0.75rem; margin-top:0.75rem;">
+          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--cyan); margin-bottom:0.4rem;">DEGREE</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Number of direct interaction partners. Top 10% = hubs.</div>
+          </div>
+          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--purple); margin-bottom:0.4rem;">BETWEENNESS</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Proportion of shortest paths through a node. High = "bottleneck" bridging modules.</div>
+          </div>
+          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--gold); margin-bottom:0.4rem;">MCC</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Maximal Clique Centrality — best performance for essential protein prediction (CytoHubba plugin).</div>
+          </div>
+          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--green); margin-bottom:0.4rem;">CLOSENESS</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Inverse of average shortest-path distance. How quickly a protein can influence the whole network.</div>
+          </div>
+        </div>
+        <div class="callout callout-tip" style="margin-top:1rem;">
+          <span class="callout-icon">💡</span>
+          <div class="callout-body"><strong>Best practice:</strong> Take the <em>intersection</em> of top-ranked genes across multiple hub methods (MCC + Degree + Betweenness) for the most robust hub set. Published SCZ hubs: NRXN1, CACNA1C, GRIN2A, DRD2, DLG4, APP, UBC, YWHAZ.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="workflow-step" data-layer="L2">
+      <div>
+        <span class="layer-badge">LAYER 2</span>
+        <h3>Extended Network, Clustering & Enrichment</h3>
+        <p>Expand by adding first-order interactors (100–500 additional nodes), run clustering algorithms to identify functional modules, and overlay biological data to annotate the network.</p>
+
+        <h4 style="font-size:0.9rem; margin: 0.75rem 0 0.5rem; color:var(--text);">Clustering algorithms:</h4>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:0.75rem; margin-bottom:1rem;">
+          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--cyan); margin-bottom:0.4rem;">MCODE</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Most widely used in disease PPI studies. Works by vertex weighting + recursive expansion. Cutoff: score >3, nodes >5. Cytoscape MCODE app.</div>
+          </div>
+          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--purple); margin-bottom:0.4rem;">MCL</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Markov Cluster Algorithm. Inflation parameter 1.8–2.5 controls granularity. clusterMaker2 plugin. Good for large networks.</div>
+          </div>
+          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1rem;">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--gold); margin-bottom:0.4rem;">LOUVAIN</div>
+            <div style="font-size:0.8rem; color:var(--text-muted);">Optimises modularity. Best performer in DREAM disease module challenge (Choobdar et al. 2019, Nature Methods). clusterMaker2.</div>
+          </div>
+        </div>
+
+        <h4 style="font-size:0.9rem; margin: 0.75rem 0 0.5rem; color:var(--text);">Functional enrichment tools:</h4>
+        <div class="code-block">
+<span class="keyword">STRING built-in</span>: GO (BP/MF/CC), KEGG, Reactome, WikiPathways, DISEASES
+<span class="keyword">g:Profiler</span>:     GO hierarchy-aware FDR correction — most rigorous
+<span class="keyword">Enrichr</span>:       400+ gene-set libraries — broadest coverage
+<span class="keyword">clusterProfiler</span>: R package — publication-quality visualisations
+<span class="comment">All: apply Benjamini-Hochberg FDR < 0.05</span>
+
+<span class="comment"># Key SCZ enrichment terms to look for:</span>
+GO:0014069 <span class="string">postsynaptic density</span>
+GO:0007268 <span class="string">synaptic transmission</span>
+KEGG:      <span class="string">Glutamatergic synapse</span>
+KEGG:      <span class="string">Dopaminergic synapse</span>
+KEGG:      <span class="string">Long-term potentiation</span>
+        </div>
+
+        <p>Finally, <strong>overlay DLPFC data</strong> as node attributes: import DLPFC fold-changes to colour nodes by expression direction, map antipsychotic drug targets, use SynGO synaptic location annotations, and TISSUES for brain specificity scores.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     SECTION 6: RESEARCH QUESTIONS
+══════════════════════════════════════════ -->
+<section id="rqs">
+<div class="container-wide">
+  <div class="reveal">
+    <p class="section-label">Section 6 · Your Project</p>
+    <h2 class="section-title">Suggested research questions</h2>
+    <div class="divider"></div>
+    <p class="section-intro">
+      Eight specific, original, and feasible research questions designed for the Layer 0→1→2 workflow. Click each card to expand the rationale. Feasibility bars indicate how tractable each RQ is for an undergraduate project.
+    </p>
+  </div>
+
+  <div class="rq-grid">
+    <div class="rq-card reveal" onclick="toggleRQ(this)">
+      <div class="rq-num">01</div>
+      <div class="rq-tags">
+        <span class="rq-tag tag-gwas">GWAS</span>
+        <span class="rq-tag tag-dlpfc">DLPFC</span>
+      </div>
+      <h3>Do GWAS-derived and DLPFC transcriptome-derived SCZ gene sets converge on the same PPI network modules?</h3>
+      <div class="rq-rationale">
+        PGC3 GWAS hits represent inherited genetic risk, while DLPFC DEGs from CMC/BrainSeq represent downstream molecular changes in disease tissue. Building separate STRING networks from each seed set, then comparing module compositions and enrichment profiles, would reveal whether genetic risk and tissue-level pathology converge on the same protein complexes — or identify novel modules unique to each evidence layer. This directly tests the "common disease module" hypothesis.
+      </div>
+      <div class="feasibility">
+        <span class="feasibility-label">Feasibility</span>
+        <div class="feasibility-bar"><div class="feasibility-fill" style="width:90%;"></div></div>
+        <span style="font-size:0.7rem; color:var(--cyan); font-family:'JetBrains Mono',monospace;">HIGH</span>
+      </div>
+      <div class="rq-expand">Read rationale</div>
+    </div>
+
+    <div class="rq-card reveal" onclick="toggleRQ(this)">
+      <div class="rq-num">02</div>
+      <div class="rq-tags">
+        <span class="rq-tag tag-psd">PSD</span>
+        <span class="rq-tag tag-gwas">GWAS</span>
+        <span class="rq-tag tag-dlpfc">DLPFC</span>
+      </div>
+      <h3>What are the hub proteins in the intersection of PSD proteins with SCZ GWAS risk genes, and how do DLPFC expression changes map onto them?</h3>
+      <div class="rq-rationale">
+        The PSD is the primary convergence point for SCZ genetic risk (Fromer et al., 2014; Kirov et al., 2012). Intersecting the Bayés et al. (2011) PSD proteome (~1,461 proteins) with PGC3 prioritised genes (~120), constructing a STRING network, and overlaying DLPFC expression data would identify specific PSD sub-complexes most relevant to SCZ. Highly tractable: all data sources are publicly available. Potential to reveal novel hub proteins beyond DLG4 and GRIN2A.
+      </div>
+      <div class="feasibility">
+        <span class="feasibility-label">Feasibility</span>
+        <div class="feasibility-bar"><div class="feasibility-fill" style="width:95%;"></div></div>
+        <span style="font-size:0.7rem; color:var(--cyan); font-family:'JetBrains Mono',monospace;">VERY HIGH</span>
+      </div>
+      <div class="rq-expand">Read rationale</div>
+    </div>
+
+    <div class="rq-card reveal" onclick="toggleRQ(this)">
+      <div class="rq-num">03</div>
+      <div class="rq-tags">
+        <span class="rq-tag tag-psd">PSD</span>
+        <span class="rq-tag tag-neuro">GABAergic</span>
+        <span class="rq-tag tag-gwas">Immune</span>
+      </div>
+      <h3>Which "bridge" proteins connect the glutamatergic, GABAergic, and immune/complement modules in the SCZ PPI network?</h3>
+      <div class="rq-rationale">
+        The glutamate, GABA, and neuroinflammation hypotheses are often studied in isolation. A combined network using seed proteins from all three systems (NMDA/AMPA receptors + PV/GAD67/SST interneuron markers + C4A/C3/cytokines) would test whether these converge on shared hub proteins. Betweenness centrality analysis could identify bridge/bottleneck proteins — potentially identifying therapeutic targets addressing multiple pathological axes simultaneously.
+      </div>
+      <div class="feasibility">
+        <span class="feasibility-label">Feasibility</span>
+        <div class="feasibility-bar"><div class="feasibility-fill" style="width:82%;"></div></div>
+        <span style="font-size:0.7rem; color:var(--cyan); font-family:'JetBrains Mono',monospace;">HIGH</span>
+      </div>
+      <div class="rq-expand">Read rationale</div>
+    </div>
+
+    <div class="rq-card reveal" onclick="toggleRQ(this)">
+      <div class="rq-num">04</div>
+      <div class="rq-tags">
+        <span class="rq-tag tag-gwas">Cross-disorder</span>
+        <span class="rq-tag tag-neuro">Network Separation</span>
+      </div>
+      <h3>How does the SCZ PPI disease module overlap with bipolar disorder and autism modules, and which proteins are SCZ-specific?</h3>
+      <div class="rq-rationale">
+        Cross-disorder genetic overlap is well-established (Cross-Disorder PGC, 2013; Lee et al., 2019), but the protein interaction architecture of this overlap is less explored. Using GWAS-derived seed genes for SCZ, bipolar, and ASD, constructing STRING networks, and computing network-based separation (sAB) scores (Menche et al., 2015) would map shared and disorder-specific disease modules. Proteins in the SCZ-specific neighbourhood are particularly interesting as potential biomarkers or drug targets.
+      </div>
+      <div class="feasibility">
+        <span class="feasibility-label">Feasibility</span>
+        <div class="feasibility-bar"><div class="feasibility-fill" style="width:70%;"></div></div>
+        <span style="font-size:0.7rem; color:var(--gold); font-family:'JetBrains Mono',monospace;">MODERATE</span>
+      </div>
+      <div class="rq-expand">Read rationale</div>
+    </div>
+
+    <div class="rq-card reveal" onclick="toggleRQ(this)">
+      <div class="rq-num">05</div>
+      <div class="rq-tags">
+        <span class="rq-tag tag-drug">Drug Repurposing</span>
+        <span class="rq-tag tag-gwas">Network Pharmacology</span>
+      </div>
+      <h3>Which SCZ PPI network hub proteins are targets of existing drugs not currently used in psychiatry — and do they cluster in specific modules?</h3>
+      <div class="rq-rationale">
+        Ganapathiraju et al. (2016) showed that novel SCZ interactors include targets of 130 existing drugs. Using STRING/STITCH to map approved drug targets onto a SCZ PPI network would identify druggable hubs. If repurposable targets cluster in specific modules (e.g., mTOR signalling, neurotrophin pathway), this would generate hypotheses for drug repurposing based on network pharmacology principles — a topic of high clinical relevance.
+      </div>
+      <div class="feasibility">
+        <span class="feasibility-label">Feasibility</span>
+        <div class="feasibility-bar"><div class="feasibility-fill" style="width:75%;"></div></div>
+        <span style="font-size:0.7rem; color:var(--gold); font-family:'JetBrains Mono',monospace;">MODERATE–HIGH</span>
+      </div>
+      <div class="rq-expand">Read rationale</div>
+    </div>
+
+    <div class="rq-card reveal" onclick="toggleRQ(this)">
+      <div class="rq-num">06</div>
+      <div class="rq-tags">
+        <span class="rq-tag tag-mito">Mitochondrial</span>
+        <span class="rq-tag tag-dlpfc">DLPFC</span>
+        <span class="rq-tag tag-psd">Synaptic</span>
+      </div>
+      <h3>Are mitochondrial and oxidative stress proteins a distinct module within the SCZ DLPFC PPI network, and which proteins bridge them to the synaptic module?</h3>
+      <div class="rq-rationale">
+        Mitochondrial dysfunction is among the most robust proteomic findings in SCZ DLPFC (Koopmans et al., 2026; Aryal et al., 2023), yet its relationship to synaptic pathology at the protein interaction level is poorly characterised. Seeding a STRING network with both synaptic SCZ genes and mitochondrial DEGs from DLPFC proteomics would reveal whether these form a single interconnected module or separate clusters, and identify bridge proteins — likely including DISC1, which localises to mitochondria-associated ER membranes.
+      </div>
+      <div class="feasibility">
+        <span class="feasibility-label">Feasibility</span>
+        <div class="feasibility-bar"><div class="feasibility-fill" style="width:80%;"></div></div>
+        <span style="font-size:0.7rem; color:var(--cyan); font-family:'JetBrains Mono',monospace;">HIGH</span>
+      </div>
+      <div class="rq-expand">Read rationale</div>
+    </div>
+
+    <div class="rq-card reveal" onclick="toggleRQ(this)">
+      <div class="rq-num">07</div>
+      <div class="rq-tags">
+        <span class="rq-tag tag-dlpfc">DLPFC Subtypes</span>
+        <span class="rq-tag tag-gwas">Precision Psychiatry</span>
+      </div>
+      <h3>Do "Type 1" and "Type 2" SCZ DLPFC subtypes (Bowen et al.) have different hub proteins and functional modules in their PPI networks?</h3>
+      <div class="rq-rationale">
+        Bowen et al. (2019) found ~55% of SCZ patients have a dramatically different DLPFC transcriptome (3,092 DEGs, complement upregulation), while ~45% look nearly identical to controls (only 4 DEGs). Building separate PPI networks for these subtypes would test whether SCZ's network architecture is heterogeneous — and could identify subtype-specific hubs and druggable modules, directly advancing the precision psychiatry agenda. This is among the most original RQs available.
+      </div>
+      <div class="feasibility">
+        <span class="feasibility-label">Feasibility</span>
+        <div class="feasibility-bar"><div class="feasibility-fill" style="width:65%;"></div></div>
+        <span style="font-size:0.7rem; color:var(--gold); font-family:'JetBrains Mono',monospace;">MODERATE</span>
+      </div>
+      <div class="rq-expand">Read rationale</div>
+    </div>
+
+    <div class="rq-card reveal" onclick="toggleRQ(this)">
+      <div class="rq-num">08</div>
+      <div class="rq-tags">
+        <span class="rq-tag tag-neuro">DISC1</span>
+        <span class="rq-tag tag-psd">Hub Connector</span>
+        <span class="rq-tag tag-dlpfc">DLPFC</span>
+      </div>
+      <h3>Does DISC1 function as a "connector hub" linking otherwise separate SCZ-relevant PPI modules within the DLPFC network?</h3>
+      <div class="rq-rationale">
+        DISC1 has ~120 known interactors spanning Wnt/GSK3β signalling, cAMP/PDE4B, neuronal migration (NDEL1), and mitochondrial function. Despite not reaching GWAS significance itself, the DISC1 interactome gene set is enriched in GWAS analyses. Using DISC1 as a focal node within a broader DLPFC SCZ network would test whether it functions as a connector hub bridging multiple pathological processes — a network property that would explain its outsized influence on SCZ biology despite modest single-gene effect size.
+      </div>
+      <div class="feasibility">
+        <span class="feasibility-label">Feasibility</span>
+        <div class="feasibility-bar"><div class="feasibility-fill" style="width:85%;"></div></div>
+        <span style="font-size:0.7rem; color:var(--cyan); font-family:'JetBrains Mono',monospace;">HIGH</span>
+      </div>
+      <div class="rq-expand">Read rationale</div>
+    </div>
+  </div>
+
+  <div class="callout callout-tip reveal" style="margin-top:2.5rem;">
+    <span class="callout-icon">⭐</span>
+    <div class="callout-body">
+      <strong>Supervisor recommendation:</strong> RQ2 and RQ3 are the most tractable for a first project. RQ7 is the most original. Start by reading Barabási 2011, Fromer 2014, and Ganapathiraju 2016. Install Cytoscape + stringApp + CytoHubba. Register for Synapse at CommonMind.org for access to DLPFC data.
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     GLOSSARY
+══════════════════════════════════════════ -->
+<section id="glossary" class="section-strip">
+<div class="container">
+  <div class="reveal">
+    <p class="section-label">Quick Reference</p>
+    <h2 class="section-title">Glossary of key terms</h2>
+    <div class="divider"></div>
+  </div>
+  <div class="glossary-wrap reveal">
+    <input type="text" class="glossary-search" placeholder="Search terms... (e.g. 'hub', 'STRING', 'PSD')" id="glossarySearch" oninput="filterGlossary()">
+    <div class="glossary-grid" id="glossaryGrid">
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- ═══════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════ -->
+<footer>
+  <div class="f-title">SCZ × PPI Network Guide</div>
+  <p style="margin-top:0.5rem;">
+    Built from deep research into schizophrenia systems biology. All citations are to primary literature — use these as your starting point and verify in PubMed.<br>
+    <em style="opacity:0.5;">Knowledge cutoff: March 2026 · For academic use only</em>
+  </p>
+</footer>
+
+</main>
+
+<script>
+// ── PROGRESS BAR
+window.addEventListener('scroll', () => {
+  const p = (window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100;
+  document.getElementById('progress-bar').style.width = p + '%';
+  
+  // Active nav
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-links a');
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 120) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+  });
+});
+
+// ── COUNTER ANIMATION
+function animateCounters() {
+  document.querySelectorAll('[data-target]').forEach(el => {
+    const target = parseInt(el.dataset.target);
+    const duration = 1800;
+    const step = target / (duration / 16);
+    let current = 0;
+    const timer = setInterval(() => {
+      current += step;
+      if (current >= target) { current = target; clearInterval(timer); }
+      el.textContent = Math.floor(current).toLocaleString();
+    }, 16);
+  });
+}
+
+// ── REVEAL ON SCROLL
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      if (e.target.closest('#hero')) animateCounters();
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Trigger hero counters after 1.5s
+setTimeout(animateCounters, 1500);
+
+// ── TAB SWITCHING
+function switchTab(id) {
+  document.querySelectorAll('.pathway-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── RQ TOGGLE
+function toggleRQ(card) {
+  card.classList.toggle('expanded');
+  card.querySelector('.rq-expand').textContent = card.classList.contains('expanded') ? 'Hide rationale' : 'Read rationale';
+  if (card.classList.contains('expanded')) {
+    const arrow = card.querySelector('.rq-expand');
+    arrow.style.color = 'var(--purple)';
+  } else {
+    card.querySelector('.rq-expand').style.color = 'var(--cyan)';
+  }
+}
+
+// ── GLOSSARY DATA
+const glossaryData = [
+  { term: "PPI", def: "Protein-Protein Interaction — a physical or functional contact between two or more proteins. PPI networks map these connections." },
+  { term: "STRING", def: "Search Tool for the Retrieval of Interacting Genes/Proteins (string-db.org). Aggregates PPI data from experiments, databases, text-mining, co-expression, and more." },
+  { term: "Cytoscape", def: "Open-source bioinformatics platform for visualising and analysing biological networks. Essential tool for your project." },
+  { term: "stringApp", def: "Cytoscape plugin that connects directly to STRING, enabling import of networks and enrichment analysis within Cytoscape." },
+  { term: "CytoHubba", def: "Cytoscape plugin implementing 11 hub-scoring methods (Degree, Betweenness, MCC, etc.). Essential for hub protein identification." },
+  { term: "Hub protein", def: "A network node with disproportionately many connections (high degree). In PPI networks, hub disruption tends to have larger phenotypic effects." },
+  { term: "Betweenness centrality", def: "The fraction of all shortest paths in a network that pass through a given node. High-betweenness = 'bottleneck' proteins bridging different modules." },
+  { term: "MCODE", def: "Molecular Complex Detection — a Cytoscape algorithm that identifies highly interconnected subgraphs (modules) within PPI networks." },
+  { term: "MCL", def: "Markov Cluster Algorithm — a network clustering method simulating random walks. Inflation parameter (1.8–2.5) controls cluster granularity." },
+  { term: "GWAS", def: "Genome-Wide Association Study — scans the genome for common genetic variants (SNPs) associated with a disease. PGC3 found 287 SCZ loci." },
+  { term: "DEG", def: "Differentially Expressed Gene — a gene with significantly different expression levels between conditions (e.g., SCZ patients vs controls)." },
+  { term: "eQTL", def: "Expression Quantitative Trait Locus — a genetic variant that influences the expression level of a gene. Links GWAS hits to gene expression changes." },
+  { term: "PSD", def: "Postsynaptic Density — a ~1µm protein matrix beneath excitatory synapses containing ~1,000–1,500 proteins. Primary convergence point for SCZ risk." },
+  { term: "DLG4 / PSD-95", def: "The master scaffold protein of excitatory synapses. Has 3 PDZ domains binding NMDA receptors. >200 high-confidence STRING interactions. Best seed node." },
+  { term: "DLPFC", def: "Dorsolateral Prefrontal Cortex (Brodmann areas 9 & 46) — the seat of working memory and executive function; most studied region in SCZ." },
+  { term: "NMDA receptor", def: "N-methyl-D-aspartate receptor — ionotropic glutamate receptor requiring both glutamate and glycine. Hypofunction drives cognitive/negative symptoms of SCZ." },
+  { term: "PV+ interneurons", def: "Parvalbumin-positive fast-spiking basket cells in cortical layer III. Generate gamma oscillations critical for working memory. Most vulnerable interneurons in SCZ." },
+  { term: "GAD67", def: "Glutamate decarboxylase 67kDa (gene: GAD1) — the enzyme synthesising GABA. Most replicated post-mortem finding in SCZ: reduced DLPFC expression in 25+ studies." },
+  { term: "C4A", def: "Complement component 4A — key gene from Sekar et al. (2016, Nature). Greater C4A expression → greater SCZ risk. Mediates synaptic pruning via C3→CR3 cascade." },
+  { term: "DISC1", def: "Disrupted In Schizophrenia 1 — scaffold protein with ~120 interactors. Identified via a translocation in a Scottish pedigree. Hub connecting Wnt, cAMP, NDEL1, and mitochondrial pathways." },
+  { term: "FDR", def: "False Discovery Rate — a statistical method for multiple testing correction. Benjamini-Hochberg FDR <0.05 is the standard cutoff for enrichment analyses." },
+  { term: "GO enrichment", def: "Gene Ontology enrichment analysis — tests whether genes/proteins in your network are more associated with specific biological processes, molecular functions, or cellular components than expected by chance." },
+  { term: "Disease module", def: "In network medicine: a cluster of disease-associated proteins that form a localised, connected region of the protein interactome (from Barabási et al., 2011)." },
+  { term: "sAB metric", def: "Network-based separation measure (Menche et al., 2015) quantifying whether two disease modules overlap (sAB < 0) or are separated (sAB > 0) in the interactome." },
+  { term: "SCHEMA", def: "Schizophrenia Exome Meta-Analysis — consortium that identified 10 genes with ultra-rare exome-wide significant variants in SCZ (Singh et al., 2022, Nature)." },
+  { term: "PGC", def: "Psychiatric Genomics Consortium — the major international collaboration conducting GWAS for psychiatric disorders. PGC3 SCZ study (2022) is the definitive GWAS resource." },
+  { term: "WGCNA", def: "Weighted Gene Co-expression Network Analysis — identifies modules of co-expressed genes from transcriptomic data. Used extensively to analyse CMC/PsychENCODE DLPFC data." },
+  { term: "TWAS", def: "Transcriptome-Wide Association Study — integrates eQTL data with GWAS to identify genes whose expression predicts disease risk. PsychENCODE identified 64 SCZ genes via TWAS." },
+  { term: "Seed proteins", def: "The initial set of proteins used to build a PPI network. Quality of seed selection is the most important factor in network quality." },
+  { term: "Layer 0/1/2", def: "Your supervisor's three-step framework: Layer 0 = literature review & seed curation; Layer 1 = seed-only network + hub identification; Layer 2 = expanded network + clustering + enrichment + overlay." },
+];
+
+function buildGlossary(filter = '') {
+  const grid = document.getElementById('glossaryGrid');
+  const filtered = glossaryData.filter(g => 
+    g.term.toLowerCase().includes(filter.toLowerCase()) || 
+    g.def.toLowerCase().includes(filter.toLowerCase())
+  );
+  grid.innerHTML = filtered.map(g => `
+    <div class="gloss-item">
+      <div class="gloss-term">${g.term}</div>
+      <div class="gloss-def">${g.def}</div>
+    </div>
+  `).join('');
+}
+
+function filterGlossary() {
+  buildGlossary(document.getElementById('glossarySearch').value);
+}
+
+buildGlossary();
+
+// ── NEURAL BACKGROUND CANVAS
+const canvas = document.getElementById('neural-bg');
+const ctx = canvas.getContext('2d');
+let nodes = [], frame = 0;
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+function initNodes() {
+  nodes = Array.from({length: 60}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    vx: (Math.random() - 0.5) * 0.4,
+    vy: (Math.random() - 0.5) * 0.4,
+    r: Math.random() * 2.5 + 1,
+  }));
+}
+
+function drawNeural() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  nodes.forEach(n => {
+    n.x += n.vx; n.y += n.vy;
+    if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
+    if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
+  });
+  
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const dx = nodes[i].x - nodes[j].x;
+      const dy = nodes[i].y - nodes[j].y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < 140) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(0,180,220,${0.12 * (1 - d/140)})`;
+        ctx.lineWidth = 0.5;
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.stroke();
+      }
+    }
+    ctx.beginPath();
+    ctx.arc(nodes[i].x, nodes[i].y, nodes[i].r, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,200,255,0.4)';
+    ctx.fill();
+  }
+  requestAnimationFrame(drawNeural);
+}
+
+resize();
+initNodes();
+drawNeural();
+window.addEventListener('resize', () => { resize(); initNodes(); });
+
+// ── PPI NETWORK CANVAS
+const ppiCanvas = document.getElementById('ppi-canvas');
+const pctx = ppiCanvas.getContext('2d');
+
+const proteins = [
+  { id: 'DLG4', x: 0, y: 0, r: 22, color: '#00d4ff', type: 'hub', label: 'PSD-95' },
+  { id: 'GRIN1', x: 0, y: 0, r: 14, color: '#00d4ff', type: 'synapse', label: 'GRIN1' },
+  { id: 'GRIN2A', x: 0, y: 0, r: 16, color: '#f5c518', type: 'risk', label: 'GRIN2A' },
+  { id: 'GRIN2B', x: 0, y: 0, r: 15, color: '#f5c518', type: 'risk', label: 'GRIN2B' },
+  { id: 'SHANK3', x: 0, y: 0, r: 13, color: '#00d4ff', type: 'synapse', label: 'SHANK3' },
+  { id: 'HOMER1', x: 0, y: 0, r: 12, color: '#9d4edd', type: 'signal', label: 'HOMER1' },
+  { id: 'DRD2', x: 0, y: 0, r: 18, color: '#f5c518', type: 'risk', label: 'DRD2' },
+  { id: 'AKT1', x: 0, y: 0, r: 15, color: '#9d4edd', type: 'signal', label: 'AKT1' },
+  { id: 'GSK3B', x: 0, y: 0, r: 13, color: '#9d4edd', type: 'signal', label: 'GSK3B' },
+  { id: 'NRXN1', x: 0, y: 0, r: 17, color: '#f5c518', type: 'risk', label: 'NRXN1' },
+  { id: 'BDNF', x: 0, y: 0, r: 14, color: '#9d4edd', type: 'signal', label: 'BDNF' },
+  { id: 'DISC1', x: 0, y: 0, r: 16, color: '#9d4edd', type: 'signal', label: 'DISC1' },
+  { id: 'C4A', x: 0, y: 0, r: 14, color: '#39d98a', type: 'immune', label: 'C4A' },
+  { id: 'PVALB', x: 0, y: 0, r: 12, color: '#00d4ff', type: 'synapse', label: 'PVALB' },
+  { id: 'GAD1', x: 0, y: 0, r: 12, color: '#00d4ff', type: 'synapse', label: 'GAD1' },
+  { id: 'MTOR', x: 0, y: 0, r: 13, color: '#9d4edd', type: 'signal', label: 'mTOR' },
+  { id: 'NTRK2', x: 0, y: 0, r: 13, color: '#9d4edd', type: 'signal', label: 'NTRK2' },
+  { id: 'GRIA3', x: 0, y: 0, r: 13, color: '#f5c518', type: 'risk', label: 'GRIA3' },
+];
+
+const edges = [
+  ['DLG4','GRIN1'],['DLG4','GRIN2A'],['DLG4','GRIN2B'],['DLG4','SHANK3'],
+  ['SHANK3','HOMER1'],['GRIN2A','GRIN1'],['GRIN2B','GRIN1'],
+  ['DRD2','AKT1'],['AKT1','GSK3B'],['GSK3B','DISC1'],['DISC1','NTRK2'],
+  ['NRXN1','DLG4'],['BDNF','NTRK2'],['NTRK2','AKT1'],
+  ['C4A','PVALB'],['PVALB','GAD1'],['GAD1','DLG4'],
+  ['MTOR','AKT1'],['DISC1','MTOR'],
+  ['GRIN2A','GRIA3'],['HOMER1','MTOR'],['DRD2','GSK3B'],
+  ['NRXN1','NTRK2'],['DISC1','NDEL1'],
+];
+
+// Init positions
+let ppiW, ppiH;
+function initPPI() {
+  ppiW = ppiCanvas.parentElement.clientWidth;
+  ppiH = ppiCanvas.parentElement.clientHeight;
+  ppiCanvas.width = ppiW;
+  ppiCanvas.height = ppiH;
+  const cx = ppiW/2, cy = ppiH/2;
+  proteins.forEach((p, i) => {
+    p.x = cx + (Math.cos(i / proteins.length * Math.PI * 2) * 150);
+    p.y = cy + (Math.sin(i / proteins.length * Math.PI * 2) * 150);
+    p.vx = 0; p.vy = 0;
+  });
+}
+
+let dragging = null, mouseX = 0, mouseY = 0;
+
+ppiCanvas.addEventListener('mousedown', e => {
+  const rect = ppiCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  proteins.forEach(p => {
+    if (Math.hypot(p.x - mx, p.y - my) < p.r + 4) dragging = p;
+  });
+});
+
+ppiCanvas.addEventListener('mousemove', e => {
+  const rect = ppiCanvas.getBoundingClientRect();
+  mouseX = e.clientX - rect.left; mouseY = e.clientY - rect.top;
+  if (dragging) { dragging.x = mouseX; dragging.y = mouseY; dragging.vx = 0; dragging.vy = 0; }
+  
+  // Hover tooltip
+  ppiCanvas.title = '';
+  proteins.forEach(p => {
+    if (Math.hypot(p.x - mouseX, p.y - mouseY) < p.r + 4) {
+      ppiCanvas.title = p.id + ' — ' + p.label;
+    }
+  });
+});
+
+ppiCanvas.addEventListener('mouseup', () => dragging = null);
+ppiCanvas.addEventListener('mouseleave', () => dragging = null);
+
+function simPPI() {
+  if (!ppiW) return;
+  
+  // Force simulation
+  proteins.forEach(p => {
+    if (p === dragging) return;
+    let fx = 0, fy = 0;
+    
+    // Repulsion
+    proteins.forEach(q => {
+      if (q === p) return;
+      const dx = p.x - q.x, dy = p.y - q.y;
+      const d = Math.max(Math.hypot(dx, dy), 1);
+      const f = 1200 / (d * d);
+      fx += dx/d * f; fy += dy/d * f;
+    });
+    
+    // Attraction along edges
+    edges.forEach(e => {
+      let other = null;
+      if (e[0] === p.id) other = proteins.find(q => q.id === e[1]);
+      if (e[1] === p.id) other = proteins.find(q => q.id === e[0]);
+      if (other) {
+        const dx = other.x - p.x, dy = other.y - p.y;
+        const d = Math.max(Math.hypot(dx, dy), 1);
+        const targetLen = 80;
+        fx += dx/d * (d - targetLen) * 0.04;
+        fy += dy/d * (d - targetLen) * 0.04;
+      }
+    });
+    
+    // Gravity toward centre
+    fx += (ppiW/2 - p.x) * 0.01;
+    fy += (ppiH/2 - p.y) * 0.01;
+    
+    p.vx = (p.vx + fx) * 0.85;
+    p.vy = (p.vy + fy) * 0.85;
+    p.x = Math.max(p.r, Math.min(ppiW - p.r, p.x + p.vx * 0.4));
+    p.y = Math.max(p.r, Math.min(ppiH - p.r, p.y + p.vy * 0.4));
+  });
+}
+
+function drawPPI() {
+  pctx.clearRect(0, 0, ppiW, ppiH);
+  
+  // Edges
+  edges.forEach(e => {
+    const a = proteins.find(p => p.id === e[0]);
+    const b = proteins.find(p => p.id === e[1]);
+    if (!a || !b) return;
+    const grad = pctx.createLinearGradient(a.x, a.y, b.x, b.y);
+    grad.addColorStop(0, a.color + '55');
+    grad.addColorStop(1, b.color + '55');
+    pctx.beginPath();
+    pctx.strokeStyle = grad;
+    pctx.lineWidth = 1.5;
+    pctx.moveTo(a.x, a.y);
+    pctx.lineTo(b.x, b.y);
+    pctx.stroke();
+  });
+  
+  // Nodes
+  proteins.forEach(p => {
+    // Glow
+    const grd = pctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 2.5);
+    grd.addColorStop(0, p.color + '30');
+    grd.addColorStop(1, 'transparent');
+    pctx.beginPath();
+    pctx.arc(p.x, p.y, p.r * 2.5, 0, Math.PI*2);
+    pctx.fillStyle = grd;
+    pctx.fill();
+    
+    // Circle
+    pctx.beginPath();
+    pctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    pctx.fillStyle = p.color + 'cc';
+    pctx.fill();
+    pctx.strokeStyle = p.color;
+    pctx.lineWidth = 1.5;
+    pctx.stroke();
+    
+    // Label
+    pctx.fillStyle = '#ffffff';
+    pctx.font = `bold ${Math.max(8, p.r * 0.65)}px JetBrains Mono, monospace`;
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'middle';
+    pctx.fillText(p.id.length > 5 ? p.id.slice(0,4) : p.id, p.x, p.y);
+  });
+  
+  simPPI();
+  requestAnimationFrame(drawPPI);
+}
+
+// Init PPI after layout
+setTimeout(() => { initPPI(); drawPPI(); }, 500);
+window.addEventListener('resize', initPPI);
+</script>
+
+</body>
+</html>
